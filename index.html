@@ -32,7 +32,7 @@
 
 <div class="stats-grid">
   <div class="stat blue">
-    <div class="label">累計レース数</div>
+    <div class="label">累計レース数 (backtest)</div>
     <div class="value">226</div>
   </div>
   <div class="stat green">
@@ -51,25 +51,37 @@
 
 <div class="chart">
   <h2>累積バンクロール推移 (10万円スタート、毎レース 2%)</h2>
-  <img src="assets/cumulative.png" alt="cumulative bankroll">
+  <img src="cumulative.png" alt="cumulative bankroll">
 </div>
 
 <div class="chart">
   <h2>月次 ROI</h2>
-  <img src="assets/monthly.png" alt="monthly ROI">
+  <img src="monthly.png" alt="monthly ROI">
 </div>
 
 <div class="chart">
   <h2>戦略別ブレイクダウン</h2>
-  <img src="assets/breakdown.png" alt="strategy breakdown">
+  <img src="breakdown.png" alt="strategy breakdown">
 </div>
 
 <div class="chart">
-  <h2>直近 10 レース</h2>
+  <h2>🎯 リアル運用実績 (forward log)</h2>
+  <p style="color:#6b7280;font-size:13px;margin-bottom:12px;">実際のレースで運用した結果。backtest とは別管理。</p>
+  <div class="stats-grid">
+    <div class="stat blue"><div class="label">運用レース</div><div class="value">3</div></div>
+    <div class="stat green"><div class="label">的中数</div><div class="value">2/3</div></div>
+    <div class="stat"><div class="label">仕入合計</div><div class="value">¥1,800</div></div>
+    <div class="stat"><div class="label">払戻合計</div><div class="value" style="color:#10b981">¥4,020</div></div>
+  </div>
+  <div class="stats-grid" style="grid-template-columns:repeat(2,1fr);">
+    <div class="stat"><div class="label">純利益</div><div class="value" style="color:#10b981">+¥2,220</div></div>
+    <div class="stat green"><div class="label">運用ROI</div><div class="value">223%</div></div>
+  </div>
   <table>
-    <thead><tr><th>日付</th><th>戦略</th><th>馬場</th><th>結果</th><th>配当</th></tr></thead>
-    <tbody><tr style="background:#fef2f2"><td>2026-04-19</td><td>PRIME_良</td><td>良</td><td>✗ 外れ</td><td>-</td></tr><tr style="background:#fef2f2"><td>2026-04-18</td><td>PRIME_良</td><td>良</td><td>✗ 外れ</td><td>-</td></tr><tr style="background:#dcfce7"><td>2026-04-18</td><td>PRIME_良</td><td>良</td><td>⭕ 的中</td><td>¥540</td></tr><tr style="background:#fef2f2"><td>2026-04-12</td><td>PRIME_良</td><td>良</td><td>✗ 外れ</td><td>-</td></tr><tr style="background:#fef2f2"><td>2026-04-04</td><td>PRIME_良</td><td>良</td><td>✗ 外れ</td><td>-</td></tr><tr style="background:#fef2f2"><td>2026-03-29</td><td>PRIME_良</td><td>良</td><td>✗ 外れ</td><td>-</td></tr><tr style="background:#fef2f2"><td>2026-03-29</td><td>PRIME_良</td><td>良</td><td>✗ 外れ</td><td>-</td></tr><tr style="background:#fef2f2"><td>2026-03-28</td><td>GBM_重</td><td>重</td><td>✗ 外れ</td><td>-</td></tr><tr style="background:#fef2f2"><td>2026-03-22</td><td>PRIME_良</td><td>良</td><td>✗ 外れ</td><td>-</td></tr><tr style="background:#fef2f2"><td>2026-03-22</td><td>PRIME_良</td><td>良</td><td>✗ 外れ</td><td>-</td></tr></tbody>
+    <thead><tr><th>日付</th><th>レース</th><th>軸馬</th><th>軸人気</th><th>結果</th><th>3連複配当</th></tr></thead>
+    <tbody><tr style="background:#dcfce7"><td>2026-04-26</td><td>Tokyo R3</td><td>#16 アニマレイ</td><td>1</td><td>⭕ 的中</td><td>—</td></tr><tr style="background:#fef2f2"><td>2026-04-26</td><td>Tokyo R2</td><td>#4 モロノカガヤキ</td><td>1</td><td>✗ 外れ</td><td>—</td></tr><tr style="background:#dcfce7"><td>2026-04-26</td><td>Kyoto R2</td><td>#12 グリーンゴー</td><td>1</td><td>⭕ 的中</td><td>—</td></tr></tbody>
   </table>
+  <p style="color:#9ca3af;font-size:11px;margin-top:8px;">※ 個別の3連複配当は記録なし、総額のみ把握</p>
 </div>
 
 <div class="disclaimer">
@@ -78,8 +90,7 @@
 </div>
 
 <p class="footer">
-  最終更新: 2026-05-01 00:13 ·
-  <a href="https://github.com/taiga7130/horse-racing-AI-">GitHub</a>
+  最終更新: 2026-05-01 06:23
 </p>
 
 </body>
