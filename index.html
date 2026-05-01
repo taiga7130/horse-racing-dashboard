@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>競馬予想 累積戦績 — UNION戦略</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Yu Gothic", sans-serif;
+         max-width: 1100px; margin: 0 auto; padding: 24px; background: #fafafa; color: #111; }
+  h1 { font-size: 28px; margin-bottom: 8px; }
+  .subtitle { color: #6b7280; margin-bottom: 24px; font-size: 14px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 32px; }
+  .stat { background: white; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .stat .label { font-size: 12px; color: #6b7280; margin-bottom: 4px; }
+  .stat .value { font-size: 24px; font-weight: 700; }
+  .stat.green .value { color: #10b981; }
+  .stat.red .value { color: #ef4444; }
+  .stat.blue .value { color: #2563eb; }
+  .chart { background: white; border-radius: 8px; padding: 16px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .chart img { max-width: 100%; height: auto; }
+  table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
+  th { background: #f3f4f6; text-align: left; padding: 8px 12px; font-size: 13px; }
+  td { padding: 8px 12px; font-size: 13px; border-top: 1px solid #e5e7eb; }
+  .footer { margin-top: 32px; font-size: 12px; color: #9ca3af; text-align: center; }
+  .disclaimer { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 24px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<h1>🐴 競馬予想 累積戦績 ダッシュボード</h1>
+<p class="subtitle">UNION戦略 (PRIME_良 ∪ GBM_重) — AIアンサンブルモデル v5 + LightGBM</p>
+
+<div class="stats-grid">
+  <div class="stat blue">
+    <div class="label">累計レース数</div>
+    <div class="value">226</div>
+  </div>
+  <div class="stat green">
+    <div class="label">累計ROI</div>
+    <div class="value">125.3%</div>
+  </div>
+  <div class="stat">
+    <div class="label">累計的中率</div>
+    <div class="value">33.6%</div>
+  </div>
+  <div class="stat">
+    <div class="label">月次黒字率</div>
+    <div class="value">11/28</div>
+  </div>
+</div>
+
+<div class="chart">
+  <h2>累積バンクロール推移 (10万円スタート、毎レース 2%)</h2>
+  <img src="assets/cumulative.png" alt="cumulative bankroll">
+</div>
+
+<div class="chart">
+  <h2>月次 ROI</h2>
+  <img src="assets/monthly.png" alt="monthly ROI">
+</div>
+
+<div class="chart">
+  <h2>戦略別ブレイクダウン</h2>
+  <img src="assets/breakdown.png" alt="strategy breakdown">
+</div>
+
+<div class="chart">
+  <h2>直近 10 レース</h2>
+  <table>
+    <thead><tr><th>日付</th><th>戦略</th><th>馬場</th><th>結果</th><th>配当</th></tr></thead>
+    <tbody><tr style="background:#fef2f2"><td>2026-04-19</td><td>PRIME_良</td><td>良</td><td>✗ 外れ</td><td>-</td></tr><tr style="background:#fef2f2"><td>2026-04-18</td><td>PRIME_良</td><td>良</td><td>✗ 外れ</td><td>-</td></tr><tr style="background:#dcfce7"><td>2026-04-18</td><td>PRIME_良</td><td>良</td><td>⭕ 的中</td><td>¥540</td></tr><tr style="background:#fef2f2"><td>2026-04-12</td><td>PRIME_良</td><td>良</td><td>✗ 外れ</td><td>-</td></tr><tr style="background:#fef2f2"><td>2026-04-04</td><td>PRIME_良</td><td>良</td><td>✗ 外れ</td><td>-</td></tr><tr style="background:#fef2f2"><td>2026-03-29</td><td>PRIME_良</td><td>良</td><td>✗ 外れ</td><td>-</td></tr><tr style="background:#fef2f2"><td>2026-03-29</td><td>PRIME_良</td><td>良</td><td>✗ 外れ</td><td>-</td></tr><tr style="background:#fef2f2"><td>2026-03-28</td><td>GBM_重</td><td>重</td><td>✗ 外れ</td><td>-</td></tr><tr style="background:#fef2f2"><td>2026-03-22</td><td>PRIME_良</td><td>良</td><td>✗ 外れ</td><td>-</td></tr><tr style="background:#fef2f2"><td>2026-03-22</td><td>PRIME_良</td><td>良</td><td>✗ 外れ</td><td>-</td></tr></tbody>
+  </table>
+</div>
+
+<div class="disclaimer">
+  ⚠️ 表示されている数値は過去 28ヶ月 (2024-01〜2026-04) の backtest 結果です。
+  未来の利益は保証されません。投資/賭博は自己責任で。
+</div>
+
+<p class="footer">
+  最終更新: 2026-05-01 00:13 ·
+  <a href="https://github.com/taiga7130/horse-racing-AI-">GitHub</a>
+</p>
+
+</body>
+</html>
