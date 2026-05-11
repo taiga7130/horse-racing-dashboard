@@ -28,7 +28,7 @@
 <body>
 
 <h1>🐴 競馬予想 累積戦績 ダッシュボード</h1>
-<p class="subtitle">UNION戦略 (PRIME_良 ∪ GBM_重) — AIアンサンブルモデル v5 + LightGBM</p>
+<p class="subtitle">AI予測モデル 3系統並走 — UNION 主力 (実弾運用) + HYBRID v6 (A/B 並走) + STRICT_q25 (記録のみ)</p>
 
 <div class="stats-grid">
   <div class="stat blue">
@@ -46,6 +46,37 @@
   <div class="stat">
     <div class="label">月次黒字率</div>
     <div class="value">11/28</div>
+  </div>
+</div>
+
+<div class="chart">
+  <h2>🔬 モデル構成 (backtest 全期間)</h2>
+  <p style="color:#6b7280;font-size:13px;margin-bottom:12px;">3系統を並走運用中。下記は 2024-01〜2026-04 の backtest をデータ修復後に再集計した真値。</p>
+  <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+    <div class="stat green">
+      <div class="label">🚀 UNION (主力・実弾運用)</div>
+      <div class="value">129%</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:4px;">n=222 / 全期間回収率</div>
+      <div style="font-size:12px;color:#374151;margin-top:8px;border-top:1px solid #e5e7eb;padding-top:6px;">
+        Regime A: <b>132%</b> &nbsp;/&nbsp; Regime B: <b>112%</b>
+      </div>
+    </div>
+    <div class="stat">
+      <div class="label">🧪 UNION_HYBRID v6 (A/B並走)</div>
+      <div class="value" style="color:#10b981;">132%</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:4px;">n=151 / 全期間回収率</div>
+      <div style="font-size:12px;color:#374151;margin-top:8px;border-top:1px solid #e5e7eb;padding-top:6px;">
+        Regime B 重視で margin_v22 採用
+      </div>
+    </div>
+    <div class="stat">
+      <div class="label">🔒 STRICT_q25 (記録のみ・実弾なし)</div>
+      <div class="value">156%</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:4px;">n=65 / 全期間回収率</div>
+      <div style="font-size:12px;color:#b45309;margin-top:8px;border-top:1px solid #e5e7eb;padding-top:6px;">
+        ⚠ jackpot 依存判明、実運用は慎重に
+      </div>
+    </div>
   </div>
 </div>
 
@@ -134,11 +165,12 @@
 <div class="disclaimer">
   ⚠️ 表示されている累計値は過去 2年4ヶ月 (2024-01〜2026-04) の backtest を、データ修復後に再集計したものです。
   Regime A (〜2025-11) と Regime B (2025-11〜) でデータ品質に違いがあり、修復済み。
+  STRICT_q25 系統は jackpot (外れ値) 依存と判明しており、実弾運用は控えています。
   未来の利益は保証されません。投資/賭博は自己責任で。
 </div>
 
 <p class="footer">
-  最終更新: 2026-05-10 12:08
+  最終更新: 2026-05-11 01:59
 </p>
 
 </body>
