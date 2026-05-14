@@ -126,9 +126,9 @@
 </div>
 
 <div class="chart">
-  <h2>📈 forward log 累積収支推移</h2>
-  <p style="color:#6b7280;font-size:13px;margin-bottom:12px;">¥100,000 スタート、各レースの仕入と払戻を反映した残高推移。</p>
-  <div style="position:relative;height:280px;"><canvas id="chartCumulative"></canvas></div>
+  <h2>📈 forward log 累積損益推移</h2>
+  <p style="color:#6b7280;font-size:13px;margin-bottom:12px;">系統ごとの累積損益。0 ライン上に積み上がる分が利益。協議型は G1/G2 中心で1レース当たりの規模が大きい。</p>
+  <div style="position:relative;height:320px;"><canvas id="chartCumulative"></canvas></div>
 </div>
 
 <div class="chart">
@@ -174,7 +174,7 @@
 </div>
 
 <p class="footer">
-  最終更新: 2026-05-11 02:30
+  最終更新: 2026-05-14 01:16
 </p>
 
 <script>
@@ -208,10 +208,8 @@ const FORWARD_LOG = [
   { date: '5/10', race: 'NHKマイルC (G1)', system: '協議', cost: 4200, payout: 12380 },
 ];
 
-const STARTING_BANKROLL = 100000;
-
 // === ヘルパー ===
-const yen = v => '¥' + v.toLocaleString('ja-JP');
+const yen = v => (v < 0 ? '-¥' + (-v).toLocaleString('ja-JP') : '¥' + v.toLocaleString('ja-JP'));
 
 // === Chart 1: 3系統 backtest 回収率 ===
 new Chart(document.getElementById('chartSystems'), {
@@ -247,39 +245,61 @@ new Chart(document.getElementById('chartSystems'), {
   },
 });
 
-// === Chart 2: forward log 累積収支 ===
-let running = STARTING_BANKROLL;
+// === Chart 2: forward log 系統別 累積損益 ===
+let cumProtocol = 0;
+let cumMachine = 0;
 const cumLabels = FORWARD_LOG.map(r => `${r.date} ${r.race}`);
-const cumData = FORWARD_LOG.map(r => {
-  running += r.payout - r.cost;
-  return running;
+const cumProtocolData = FORWARD_LOG.map(r => {
+  if (r.system === '協議') cumProtocol += r.payout - r.cost;
+  return cumProtocol;
+});
+const cumMachineData = FORWARD_LOG.map(r => {
+  if (r.system === 'UNION') cumMachine += r.payout - r.cost;
+  return cumMachine;
 });
 
 new Chart(document.getElementById('chartCumulative'), {
   type: 'line',
   data: {
     labels: cumLabels,
-    datasets: [{
-      label: 'バンクロール',
-      data: cumData,
-      borderColor: '#10b981',
-      backgroundColor: 'rgba(16, 185, 129, 0.12)',
-      fill: true,
-      tension: 0.25,
-      pointRadius: 4,
-      pointHoverRadius: 6,
-      pointBackgroundColor: '#10b981',
-    }],
+    datasets: [
+      {
+        label: '🧠 協議型',
+        data: cumProtocolData,
+        borderColor: '#10b981',
+        backgroundColor: 'rgba(16, 185, 129, 0.18)',
+        fill: true,
+        tension: 0.25,
+        borderWidth: 3,
+        pointRadius: 4,
+        pointHoverRadius: 7,
+        pointBackgroundColor: '#10b981',
+        order: 1,
+      },
+      {
+        label: '🤖 機械フロー (UNION)',
+        data: cumMachineData,
+        borderColor: '#6b7280',
+        backgroundColor: 'rgba(107, 114, 128, 0.08)',
+        fill: true,
+        tension: 0.25,
+        borderWidth: 2,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        pointBackgroundColor: '#6b7280',
+        order: 2,
+      },
+    ],
   },
   options: {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: false },
+      legend: { display: true, position: 'top', align: 'end' },
       tooltip: {
         callbacks: {
           title: items => items[0].label,
-          label: c => yen(c.parsed.y),
+          label: c => `${c.dataset.label}: ${yen(c.parsed.y)}`,
         },
       },
     },
@@ -288,8 +308,8 @@ new Chart(document.getElementById('chartCumulative'), {
       y: {
         ticks: { callback: v => yen(v) },
         grid: {
-          color: ctx => ctx.tick.value === STARTING_BANKROLL ? '#9ca3af' : '#e5e7eb',
-          lineWidth: ctx => ctx.tick.value === STARTING_BANKROLL ? 2 : 1,
+          color: ctx => ctx.tick.value === 0 ? '#9ca3af' : '#e5e7eb',
+          lineWidth: ctx => ctx.tick.value === 0 ? 2 : 1,
         },
       },
     },
