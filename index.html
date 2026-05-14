@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>競馬予想 累積戦績 — UNION戦略</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Yu Gothic", sans-serif;
          max-width: 1100px; margin: 0 auto; padding: 24px; background: #fafafa; color: #111; }
@@ -81,18 +82,9 @@
 </div>
 
 <div class="chart">
-  <h2>累積バンクロール推移 (10万円スタート、毎レース 2%)</h2>
-  <img src="cumulative.png" alt="cumulative bankroll">
-</div>
-
-<div class="chart">
-  <h2>月次 回収率</h2>
-  <img src="monthly.png" alt="monthly ROI">
-</div>
-
-<div class="chart">
-  <h2>戦略別ブレイクダウン</h2>
-  <img src="breakdown.png" alt="strategy breakdown">
+  <h2>🚀 3系統 backtest 回収率比較</h2>
+  <p style="color:#6b7280;font-size:13px;margin-bottom:12px;">上の数値をビジュアル化。点線は損益分岐 (100%)。</p>
+  <div style="position:relative;height:240px;"><canvas id="chartSystems"></canvas></div>
 </div>
 
 <div class="chart">
@@ -134,6 +126,18 @@
 </div>
 
 <div class="chart">
+  <h2>📈 forward log 累積収支推移</h2>
+  <p style="color:#6b7280;font-size:13px;margin-bottom:12px;">¥100,000 スタート、各レースの仕入と払戻を反映した残高推移。</p>
+  <div style="position:relative;height:280px;"><canvas id="chartCumulative"></canvas></div>
+</div>
+
+<div class="chart">
+  <h2>🎯 forward log 戦略別 仕入 vs 払戻</h2>
+  <p style="color:#6b7280;font-size:13px;margin-bottom:12px;">系統ごとの累計仕入と払戻。差分が利益。</p>
+  <div style="position:relative;height:280px;"><canvas id="chartBreakdown"></canvas></div>
+</div>
+
+<div class="chart">
   <h2>🤖 機械フロー (UNION戦略)</h2>
   <p style="color:#6b7280;font-size:13px;margin-bottom:12px;">v5 NN ensemble + GBM の自動判定で買った結果。</p>
   <div class="stats-grid">
@@ -170,8 +174,171 @@
 </div>
 
 <p class="footer">
-  最終更新: 2026-05-11 01:59
+  最終更新: 2026-05-11 02:30
 </p>
+
+<script>
+// === 編集可能データ ===
+// 3系統 backtest (全期間回収率)
+const SYSTEM_BACKTEST = [
+  { name: 'UNION (主力)',  roi: 129, n: 222, color: '#10b981' },
+  { name: 'HYBRID v6',     roi: 132, n: 151, color: '#3b82f6' },
+  { name: 'STRICT_q25',    roi: 156, n:  65, color: '#f59e0b' },
+];
+
+// forward log (日付順)。cost = points × unit_yen、payout=0 は外れ
+const FORWARD_LOG = [
+  { date: '4/19', race: '皐月賞 (G1)',     system: '協議', cost: 2600, payout: 10420 },
+  { date: '4/25', race: '青葉賞 (G2)',     system: '協議', cost: 2200, payout:  2280 },
+  { date: '4/26', race: '京都R2',          system: 'UNION', cost:  600, payout:   330 },
+  { date: '4/26', race: '東京R2',          system: 'UNION', cost:  600, payout:     0 },
+  { date: '4/26', race: '東京R3',          system: 'UNION', cost:  600, payout:  3690 },
+  { date: '4/26', race: 'マイラーズC (G2)', system: '協議', cost: 2600, payout: 13860 },
+  { date: '5/2',  race: '京都R2',          system: 'UNION', cost:  600, payout:   770 },
+  { date: '5/2',  race: '京都R3',          system: 'UNION', cost:  600, payout:     0 },
+  { date: '5/2',  race: '京都R5',          system: 'UNION', cost:  600, payout:   730 },
+  { date: '5/2',  race: '東京R1',          system: 'UNION', cost:  600, payout:     0 },
+  { date: '5/2',  race: '東京R2',          system: 'UNION', cost: 1000, payout:  1280 },
+  { date: '5/2',  race: '東京R6',          system: 'UNION', cost:  600, payout:   630 },
+  { date: '5/2',  race: '京王杯SC (G2)',   system: '協議', cost: 2800, payout:     0 },
+  { date: '5/2',  race: '東京R12',         system: 'UNION', cost:  600, payout:  1810 },
+  { date: '5/3',  race: '天皇賞・春 (G1)', system: '協議', cost: 4000, payout:     0 },
+  { date: '5/10', race: '京都R10',         system: 'UNION', cost: 1200, payout:  1350 },
+  { date: '5/10', race: '東京R6',          system: 'UNION', cost:  600, payout:  1170 },
+  { date: '5/10', race: 'NHKマイルC (G1)', system: '協議', cost: 4200, payout: 12380 },
+];
+
+const STARTING_BANKROLL = 100000;
+
+// === ヘルパー ===
+const yen = v => '¥' + v.toLocaleString('ja-JP');
+
+// === Chart 1: 3系統 backtest 回収率 ===
+new Chart(document.getElementById('chartSystems'), {
+  type: 'bar',
+  data: {
+    labels: SYSTEM_BACKTEST.map(s => `${s.name} (n=${s.n})`),
+    datasets: [{
+      label: '回収率 (%)',
+      data: SYSTEM_BACKTEST.map(s => s.roi),
+      backgroundColor: SYSTEM_BACKTEST.map(s => s.color),
+      borderRadius: 6,
+    }],
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: c => `回収率 ${c.parsed.x}%` } },
+    },
+    scales: {
+      x: {
+        beginAtZero: true,
+        suggestedMax: 180,
+        grid: {
+          color: ctx => ctx.tick.value === 100 ? '#ef4444' : '#e5e7eb',
+          lineWidth: ctx => ctx.tick.value === 100 ? 2 : 1,
+        },
+        ticks: { callback: v => v + '%' },
+      },
+    },
+  },
+});
+
+// === Chart 2: forward log 累積収支 ===
+let running = STARTING_BANKROLL;
+const cumLabels = FORWARD_LOG.map(r => `${r.date} ${r.race}`);
+const cumData = FORWARD_LOG.map(r => {
+  running += r.payout - r.cost;
+  return running;
+});
+
+new Chart(document.getElementById('chartCumulative'), {
+  type: 'line',
+  data: {
+    labels: cumLabels,
+    datasets: [{
+      label: 'バンクロール',
+      data: cumData,
+      borderColor: '#10b981',
+      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      fill: true,
+      tension: 0.25,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      pointBackgroundColor: '#10b981',
+    }],
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          title: items => items[0].label,
+          label: c => yen(c.parsed.y),
+        },
+      },
+    },
+    scales: {
+      x: { ticks: { maxRotation: 60, minRotation: 30, autoSkip: true, font: { size: 10 } } },
+      y: {
+        ticks: { callback: v => yen(v) },
+        grid: {
+          color: ctx => ctx.tick.value === STARTING_BANKROLL ? '#9ca3af' : '#e5e7eb',
+          lineWidth: ctx => ctx.tick.value === STARTING_BANKROLL ? 2 : 1,
+        },
+      },
+    },
+  },
+});
+
+// === Chart 3: forward log 戦略別収支 ===
+const grouped = {};
+FORWARD_LOG.forEach(r => {
+  if (!grouped[r.system]) grouped[r.system] = { cost: 0, payout: 0 };
+  grouped[r.system].cost   += r.cost;
+  grouped[r.system].payout += r.payout;
+});
+const systemKeys = Object.keys(grouped);
+
+new Chart(document.getElementById('chartBreakdown'), {
+  type: 'bar',
+  data: {
+    labels: systemKeys.map(k => k === 'UNION' ? '🤖 機械フロー (UNION)' : '🧠 協議型'),
+    datasets: [
+      {
+        label: '仕入',
+        data: systemKeys.map(k => grouped[k].cost),
+        backgroundColor: '#9ca3af',
+        borderRadius: 6,
+      },
+      {
+        label: '払戻',
+        data: systemKeys.map(k => grouped[k].payout),
+        backgroundColor: '#10b981',
+        borderRadius: 6,
+      },
+    ],
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      tooltip: { callbacks: { label: c => `${c.dataset.label}: ${yen(c.parsed.y)}` } },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { callback: v => yen(v) },
+      },
+    },
+  },
+});
+</script>
 
 </body>
 </html>
