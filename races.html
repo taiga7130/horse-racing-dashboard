@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>競馬AI指数ビューア</title>
+<style>
+  :root{
+    --bg:#eef1f7; --bg2:#e7ecf4; --card:#ffffff; --card2:#f4f7fb; --line:#e2e8f1;
+    --txt:#1b2436; --mut:#697587; --dim:#9aa4b4;
+    --v5:#3b6cf6; --gbm:#13a36b; --mgn:#e0891e; --gold:#c79318; --green:#16a34a; --red:#e0584f;
+    --shadow:0 1px 2px rgba(20,32,58,.06), 0 8px 24px rgba(20,32,58,.05);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{font-family:"Inter",-apple-system,BlinkMacSystemFont,"Helvetica Neue","Hiragino Sans","Yu Gothic UI","Yu Gothic",sans-serif;
+       background:radial-gradient(1100px 560px at 82% -12%,#dbe6ff 0%,transparent 55%),var(--bg);
+       color:var(--txt); -webkit-font-smoothing:antialiased; line-height:1.45;}
+  .num{font-variant-numeric:tabular-nums; font-feature-settings:"tnum";}
+  a{color:inherit;}
+
+  /* ---------- header ---------- */
+  header{position:sticky; top:0; z-index:20; padding:13px 22px;
+    background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(255,255,255,.82)); backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line); display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+    box-shadow:0 1px 0 rgba(20,32,58,.03);}
+  .brand{display:flex; align-items:center; gap:11px;}
+  .logo{width:38px; height:38px; border-radius:11px; display:grid; place-items:center; font-size:20px;
+    background:linear-gradient(145deg,#eaf0ff,#d7e2fb); box-shadow:inset 0 0 0 1px #cdd9f2, 0 4px 12px rgba(80,110,200,.15);}
+  .brand h1{font-size:17px; margin:0; letter-spacing:.2px; font-weight:750;}
+  .brand .d{font-size:12px; color:var(--mut); margin-top:1px;}
+  .chips{display:flex; gap:9px; margin-left:auto; flex-wrap:wrap;}
+  .chip{background:var(--card); border:1px solid var(--line); border-radius:11px; padding:7px 13px; min-width:74px; box-shadow:var(--shadow);}
+  .chip .k{font-size:10px; color:var(--mut); letter-spacing:.4px;}
+  .chip .v{font-size:18px; font-weight:800; line-height:1.1;}
+  .chip.gold .v{color:var(--gold);}
+  .src{font-size:11px; color:var(--dim); width:100%; margin-top:2px;}
+
+  /* ---------- layout ---------- */
+  .layout{display:grid; grid-template-columns:312px 1fr;}
+  #list{border-right:1px solid var(--line); height:calc(100vh - 66px); overflow:auto; padding:16px 14px;}
+  #detail{height:calc(100vh - 66px); overflow:auto; padding:24px 30px 60px;}
+  @media (max-width:820px){
+    .layout{grid-template-columns:1fr;}
+    #list,#detail{height:auto; overflow:visible;}
+    #detail{display:none; padding:18px 16px 50px;}
+    .layout.show-detail #list{display:none;}
+    .layout.show-detail #detail{display:block;}
+  }
+
+  /* ---------- race list ---------- */
+  .toolbar{display:flex; align-items:center; justify-content:space-between; margin:2px 4px 14px;}
+  .toolbar .ttl{font-size:12px; color:var(--mut); letter-spacing:.5px; font-weight:700;}
+  .sw{position:relative; display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; color:var(--mut);}
+  .sw input{display:none;}
+  .sw .track{width:38px; height:21px; border-radius:21px; background:#d4dae6; transition:.2s; position:relative;}
+  .sw .track::after{content:""; position:absolute; top:2px; left:2px; width:17px; height:17px; border-radius:50%;
+    background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.2); transition:.2s;}
+  .sw input:checked + .track{background:linear-gradient(90deg,#e8b733,#f6c83f);}
+  .sw input:checked + .track::after{transform:translateX(17px);}
+
+  .grp-name{font-size:11px; color:var(--dim); font-weight:800; letter-spacing:1px; margin:14px 4px 8px;
+    text-transform:uppercase; display:flex; align-items:center; gap:8px;}
+  .grp-name::after{content:""; flex:1; height:1px; background:var(--line);}
+  .rcard{display:grid; grid-template-columns:46px 1fr auto; align-items:center; gap:11px; width:100%;
+    background:var(--card); border:1px solid var(--line); border-radius:13px; padding:11px 12px; margin-bottom:8px;
+    cursor:pointer; text-align:left; transition:.15s; color:var(--txt); box-shadow:var(--shadow);}
+  .rcard:hover{transform:translateY(-1px); border-color:#bcd0f6; box-shadow:0 6px 16px rgba(50,90,200,.12);}
+  .rcard.active{border-color:var(--v5); background:linear-gradient(135deg,#eef3ff,#ffffff);
+    box-shadow:0 0 0 1px var(--v5), 0 8px 20px rgba(60,108,246,.16);}
+  .rcard.reco{border-color:#ecd79a; background:linear-gradient(135deg,#fffaec,#ffffff);}
+  .rcard.reco.active{border-color:var(--gold); box-shadow:0 0 0 1px var(--gold),0 8px 20px rgba(200,150,30,.2);}
+  .rno-badge{width:46px; height:46px; border-radius:11px; display:grid; place-items:center; line-height:1;
+    background:linear-gradient(145deg,#eef2f9,#dfe6f1); box-shadow:inset 0 0 0 1px #d4dceb; color:var(--txt);}
+  .rno-badge b{font-size:18px; font-weight:800;}
+  .rno-badge .rs{font-size:9px; color:var(--mut); margin-top:1px;}
+  .rcard .mid .nm{font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px;}
+  .rcard .mid .sub{font-size:11px; color:var(--mut); margin-top:3px;}
+  .rcard .conf{text-align:right;}
+  .conf .meter{width:54px; height:6px; border-radius:4px; background:#e4e9f2; overflow:hidden; margin-bottom:4px;}
+  .conf .meter i{display:block; height:100%; border-radius:4px; background:linear-gradient(90deg,#34c47e,#16a34a);}
+  .conf .lbl{font-size:10px; color:var(--dim);}
+  .star{color:var(--gold); font-size:12px;}
+  .surf{display:inline-block; font-size:10px; padding:1px 6px; border-radius:5px; background:#eef1f7; color:var(--mut);}
+  .surf.firm{color:#0f7a52; background:#e3f5ec;} .surf.heavy{color:#2563a6; background:#e6eefb;}
+
+  /* ---------- detail ---------- */
+  .back{display:none;}
+  @media (max-width:820px){.back{display:inline-flex; gap:6px; align-items:center; margin-bottom:14px;
+    background:var(--card); border:1px solid var(--line); color:var(--txt); border-radius:9px; padding:8px 14px; font-size:13px; box-shadow:var(--shadow);}}
+  .dhead{display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; margin-bottom:4px;}
+  .dhead .place{font-size:13px; color:var(--mut); letter-spacing:1px; font-weight:600;}
+  .dhead h2{font-size:30px; margin:0; font-weight:800; letter-spacing:.5px;}
+  .dhead .tags{display:flex; gap:7px; margin-bottom:4px;}
+  .tag{font-size:11px; padding:3px 9px; border-radius:7px; background:var(--card); border:1px solid var(--line); color:var(--mut); box-shadow:var(--shadow);}
+
+  .reco-card{margin:16px 0 18px; border-radius:16px; padding:16px 18px; position:relative; overflow:hidden;
+    background:linear-gradient(135deg,#fff6da 0%,#ffffff 65%); border:1px solid #ecd384; box-shadow:0 6px 20px rgba(200,160,40,.12);}
+  .reco-card::before{content:"\2605"; position:absolute; right:-6px; top:-14px; font-size:90px; color:rgba(220,170,40,.10);}
+  .reco-card .h{display:flex; align-items:center; gap:9px; font-size:13px; color:#a9791a; font-weight:800; letter-spacing:.5px;}
+  .reco-card .axis{display:flex; align-items:center; gap:12px; margin-top:11px;}
+  .axis .pin{width:50px; height:50px; border-radius:12px; display:grid; place-items:center; font-size:22px; font-weight:800;
+    background:linear-gradient(145deg,#ffd24a,#e3a92e); color:#3a2a02; box-shadow:0 6px 16px rgba(210,160,40,.4);}
+  .axis .who .nm{font-size:17px; font-weight:800;}
+  .axis .who .sub{font-size:12px; color:#9c7e3a; margin-top:2px;}
+  .reco-card .strat{margin-top:11px; font-size:12px; color:#7f6a32; border-top:1px solid rgba(200,160,40,.25); padding-top:9px;}
+
+  .skip-card{margin:16px 0 18px; border-radius:14px; padding:13px 16px; font-size:12.5px; color:var(--mut);
+    background:var(--card); border:1px solid var(--line); display:flex; align-items:center; gap:10px; box-shadow:var(--shadow);}
+  .skip-card .ai{color:var(--v5); font-weight:700;}
+
+  .seg{display:inline-flex; background:var(--card); border:1px solid var(--line); border-radius:11px; padding:4px; gap:3px; margin:6px 0 16px; box-shadow:var(--shadow);}
+  .seg button{border:0; background:transparent; color:var(--mut); font-size:12.5px; font-weight:700; padding:7px 14px;
+    border-radius:8px; cursor:pointer; transition:.15s;}
+  .seg button.active{background:linear-gradient(135deg,#3b6cf6,#5a82ff); color:#fff; box-shadow:0 2px 8px rgba(60,108,246,.3);}
+
+  /* ---------- horse cards ---------- */
+  .hlist{display:flex; flex-direction:column; gap:9px;}
+  .horse{display:grid; grid-template-columns:50px 1fr minmax(220px,300px); gap:14px; align-items:center;
+    background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 16px; transition:.15s; box-shadow:var(--shadow);}
+  .horse:hover{border-color:#c4d2ee;}
+  .horse.pick{background:linear-gradient(100deg,#e9f8ef,#ffffff 60%); border-color:#9bd9b4;
+    box-shadow:0 0 0 1px rgba(22,163,74,.35), 0 6px 16px rgba(22,120,60,.12);}
+  .rkwrap{display:flex; flex-direction:column; align-items:center; gap:5px;}
+  .medal{width:34px; height:34px; border-radius:50%; display:grid; place-items:center; font-size:15px; font-weight:800;
+    background:#eef1f7; color:var(--mut);}
+  .medal.m1{background:linear-gradient(145deg,#ffd24a,#e0ab2c); color:#3a2a02;}
+  .medal.m2{background:linear-gradient(145deg,#dde3ec,#b3bcca); color:#2a3140;}
+  .medal.m3{background:linear-gradient(145deg,#eab282,#cf8a52); color:#3a1e06;}
+  .uma{font-size:10px; color:var(--dim);}
+  .hmain .top{display:flex; align-items:center; gap:9px;}
+  .hmain .nm{font-size:16px; font-weight:750;}
+  .pickbadge{font-size:10px; font-weight:800; color:#0f8a44; background:rgba(22,163,74,.12);
+    border:1px solid rgba(22,163,74,.4); padding:2px 7px; border-radius:6px;}
+  .hmain .sub{font-size:12px; color:var(--mut); margin-top:3px; display:flex; gap:9px; flex-wrap:wrap;}
+  .nin{color:var(--txt);} .nin b{color:var(--gold);}
+  .bars{display:flex; flex-direction:column; gap:6px;}
+  .bar{display:grid; grid-template-columns:30px 1fr 64px; align-items:center; gap:8px;}
+  .bar .bl{font-size:10px; color:var(--mut); font-weight:800;}
+  .bar .track{height:8px; border-radius:5px; background:#e9edf4; overflow:hidden; position:relative;}
+  .bar .track i{display:block; height:100%; border-radius:5px; transition:width .4s cubic-bezier(.2,.8,.2,1);}
+  .bar.v5 i{background:linear-gradient(90deg,#7d9bf7,#3b6cf6);}
+  .bar.gbm i{background:linear-gradient(90deg,#43c98a,#13a36b);}
+  .bar.mgn i{background:linear-gradient(90deg,#f0b257,#e0891e);}
+  .bar .val{font-size:11px; text-align:right; color:var(--txt);}
+  .bar .val .rk{font-size:10px; color:var(--dim); margin-left:4px;}
+  .bar .val .rk.r1{color:var(--gold); font-weight:700;}
+
+  .flags{margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;}
+  .fl{font-size:9.5px; padding:2px 7px; border-radius:6px; background:#eef1f7; color:var(--mut); border:1px solid var(--line);}
+  .fl.agree{color:#0f7a52; border-color:#bfe6d2; background:#eaf7f0;}
+  .fl.fire{color:#a9791a; border-color:#ecd79a; background:#fdf6e3;}
+  .fl.strong{color:#a23271; border-color:#eec0dc; background:#fbeef5;}
+  .fl.unc{color:#b46a16; border-color:#f0d2a6; background:#fcf1e2;}
+
+  .legend{margin-top:26px; padding:16px 18px; background:var(--card); border:1px solid var(--line); border-radius:14px;
+    font-size:12px; color:var(--mut); line-height:1.85; box-shadow:var(--shadow);}
+  .legend b{color:var(--txt);}
+  .legend .dot{display:inline-block; width:9px; height:9px; border-radius:3px; margin-right:6px; vertical-align:middle;}
+  .legend code{background:var(--card2); padding:1px 6px; border-radius:5px; color:var(--txt); font-size:11px; border:1px solid var(--line);}
+  .disc{margin-top:10px; font-size:11px; color:var(--dim);}
+
+  @media (max-width:560px){
+    .horse{grid-template-columns:42px 1fr; }
+    .horse .bars{grid-column:1 / -1; margin-top:6px;}
+    .dhead h2{font-size:24px;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">🐴</div>
+    <div><h1>競馬AI指数ビューア</h1><div class="d" id="hdate"></div></div>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="src" id="src"></div>
+</header>
+
+<div class="layout" id="layout">
+  <div id="list"></div>
+  <div id="detail"></div>
+</div>
+
+<script>
+const DATA = {"meta": {"date": "2026-05-31", "source": "predict_dual_strict_0531.csv", "generated": "2026-05-30 12:12", "n_races": 2, "n_recommended": 0, "n_places": 1}, "races": [{"race_id": "2026-05-31_Tokyo_R11", "place": "東京", "place_en": "Tokyo", "r": 11, "distance": 2400, "surface": "良", "n_horses": 18, "recommended": false, "rec_label": "", "bet_pick": null, "bet_source": "", "conf": 0.904, "top_umaban": 17, "top_name": "ロブチェン", "horses": [{"umaban": 17, "name": "ロブチェン", "jockey": "松山弘平", "ninki": 1, "age": 3, "kinryo": 57.0, "v5_score": 2.03, "v5_rank": 1, "v5_mmd": 0.904, "gbm_score": 1.234, "gbm_rank": 1, "gbm_mmd": 1.027, "margin_sec": 0.869, "margin_rank": 6, "margin_std": 0.059, "flag": "nan"}, {"umaban": 14, "name": "ゴーイントゥスカイ", "jockey": "武豊", "ninki": 3, "age": 3, "kinryo": 57.0, "v5_score": 1.914, "v5_rank": 2, "v5_mmd": 0.788, "gbm_score": 0.94, "gbm_rank": 2, "gbm_mmd": 0.733, "margin_sec": 0.608, "margin_rank": 1, "margin_std": 0.05, "flag": "nan"}, {"umaban": 1, "name": "ライヒスアドラー", "jockey": "佐々木大", "ninki": 6, "age": 3, "kinryo": 57.0, "v5_score": 1.642, "v5_rank": 3, "v5_mmd": 0.516, "gbm_score": 0.297, "gbm_rank": 6, "gbm_mmd": 0.09, "margin_sec": 0.758, "margin_rank": 4, "margin_std": 0.024, "flag": "nan"}, {"umaban": 11, "name": "リアライズシリウス", "jockey": "津村明秀", "ninki": 2, "age": 3, "kinryo": 57.0, "v5_score": 1.451, "v5_rank": 4, "v5_mmd": 0.325, "gbm_score": 0.417, "gbm_rank": 5, "gbm_mmd": 0.21, "margin_sec": 0.986, "margin_rank": 11, "margin_std": 0.025, "flag": "nan"}, {"umaban": 6, "name": "コンジェスタス", "jockey": "西村淳也", "ninki": 4, "age": 3, "kinryo": 57.0, "v5_score": 1.386, "v5_rank": 5, "v5_mmd": 0.26, "gbm_score": -0.047, "gbm_rank": 12, "gbm_mmd": -0.254, "margin_sec": 0.915, "margin_rank": 8, "margin_std": 0.062, "flag": "nan"}, {"umaban": 10, "name": "ジャスティンビスタ", "jockey": "坂井瑠星", "ninki": 14, "age": 3, "kinryo": 57.0, "v5_score": 1.351, "v5_rank": 6, "v5_mmd": 0.225, "gbm_score": 0.487, "gbm_rank": 4, "gbm_mmd": 0.279, "margin_sec": 0.881, "margin_rank": 7, "margin_std": 0.054, "flag": "nan"}, {"umaban": 9, "name": "アウダーシア", "jockey": "レーン", "ninki": 8, "age": 3, "kinryo": 57.0, "v5_score": 1.297, "v5_rank": 7, "v5_mmd": 0.171, "gbm_score": 0.572, "gbm_rank": 3, "gbm_mmd": 0.365, "margin_sec": 0.716, "margin_rank": 2, "margin_std": 0.066, "flag": "nan"}, {"umaban": 2, "name": "マテンロウゲイル", "jockey": "横山和生", "ninki": 12, "age": 3, "kinryo": 57.0, "v5_score": 1.272, "v5_rank": 8, "v5_mmd": 0.146, "gbm_score": 0.234, "gbm_rank": 8, "gbm_mmd": 0.027, "margin_sec": 1.023, "margin_rank": 14, "margin_std": 0.013, "flag": "nan"}, {"umaban": 16, "name": "グリーンエナジー", "jockey": "戸崎圭太", "ninki": 10, "age": 3, "kinryo": 57.0, "v5_score": 1.141, "v5_rank": 9, "v5_mmd": 0.015, "gbm_score": 0.237, "gbm_rank": 7, "gbm_mmd": 0.03, "margin_sec": 0.724, "margin_rank": 3, "margin_std": 0.042, "flag": "nan"}, {"umaban": 5, "name": "バステール", "jockey": "川田将雅", "ninki": 13, "age": 3, "kinryo": 57.0, "v5_score": 1.111, "v5_rank": 10, "v5_mmd": -0.015, "gbm_score": 0.207, "gbm_rank": 9, "gbm_mmd": 0.0, "margin_sec": 0.947, "margin_rank": 10, "margin_std": 0.031, "flag": "nan"}, {"umaban": 13, "name": "パントルナイーフ", "jockey": "ルメール", "ninki": 4, "age": 3, "kinryo": 57.0, "v5_score": 0.964, "v5_rank": 11, "v5_mmd": -0.162, "gbm_score": -0.284, "gbm_rank": 14, "gbm_mmd": -0.491, "margin_sec": 0.938, "margin_rank": 9, "margin_std": 0.04, "flag": "nan"}, {"umaban": 15, "name": "フォルテアンジェロ", "jockey": "荻野極", "ninki": 9, "age": 3, "kinryo": 57.0, "v5_score": 0.486, "v5_rank": 12, "v5_mmd": -0.64, "gbm_score": 0.207, "gbm_rank": 10, "gbm_mmd": -0.0, "margin_sec": 0.839, "margin_rank": 5, "margin_std": 0.017, "flag": "nan"}, {"umaban": 12, "name": "アスクエジンバラ", "jockey": "岩田康誠", "ninki": 7, "age": 3, "kinryo": 57.0, "v5_score": 0.291, "v5_rank": 13, "v5_mmd": -0.835, "gbm_score": -0.046, "gbm_rank": 11, "gbm_mmd": -0.253, "margin_sec": 1.015, "margin_rank": 12, "margin_std": 0.059, "flag": "nan"}, {"umaban": 18, "name": "エムズビギン", "jockey": "ゴンサル", "ninki": 17, "age": 3, "kinryo": 57.0, "v5_score": 0.177, "v5_rank": 14, "v5_mmd": -0.949, "gbm_score": -0.181, "gbm_rank": 13, "gbm_mmd": -0.388, "margin_sec": 1.126, "margin_rank": 15, "margin_std": 0.043, "flag": "nan"}, {"umaban": 7, "name": "メイショウハチコウ", "jockey": "ディー", "ninki": 11, "age": 3, "kinryo": 57.0, "v5_score": 0.081, "v5_rank": 15, "v5_mmd": -1.045, "gbm_score": -0.415, "gbm_rank": 16, "gbm_mmd": -0.622, "margin_sec": 1.019, "margin_rank": 13, "margin_std": 0.035, "flag": "nan"}, {"umaban": 8, "name": "ショウナンガルフ", "jockey": "浜中俊", "ninki": 18, "age": 3, "kinryo": 57.0, "v5_score": -0.427, "v5_rank": 16, "v5_mmd": -1.552, "gbm_score": -0.323, "gbm_rank": 15, "gbm_mmd": -0.53, "margin_sec": 1.592, "margin_rank": 16, "margin_std": 0.073, "flag": "nan"}, {"umaban": 4, "name": "アルトラムス", "jockey": "横山武史", "ninki": 16, "age": 3, "kinryo": 57.0, "v5_score": -1.107, "v5_rank": 17, "v5_mmd": -2.233, "gbm_score": -0.502, "gbm_rank": 17, "gbm_mmd": -0.709, "margin_sec": 1.802, "margin_rank": 18, "margin_std": 0.069, "flag": "nan"}, {"umaban": 3, "name": "ケントン", "jockey": "丹内祐次", "ninki": 15, "age": 3, "kinryo": 57.0, "v5_score": -2.022, "v5_rank": 18, "v5_mmd": -3.148, "gbm_score": -1.334, "gbm_rank": 18, "gbm_mmd": -1.541, "margin_sec": 1.716, "margin_rank": 17, "margin_std": 0.033, "flag": "nan"}]}, {"race_id": "2026-05-31_Tokyo_R12", "place": "東京", "place_en": "Tokyo", "r": 12, "distance": 2500, "surface": "良", "n_horses": 14, "recommended": false, "rec_label": "", "bet_pick": null, "bet_source": "", "conf": 2.065, "top_umaban": 6, "top_name": "ウィクトルウェルス", "horses": [{"umaban": 6, "name": "ウィクトルウェルス", "jockey": "ルメール", "ninki": 1, "age": 4, "kinryo": 57.0, "v5_score": 1.996, "v5_rank": 1, "v5_mmd": 2.065, "gbm_score": 1.38, "gbm_rank": 1, "gbm_mmd": 1.413, "margin_sec": 0.328, "margin_rank": 1, "margin_std": 0.038, "flag": "TRIPLE_AGREE|TRIPLE_STRONG"}, {"umaban": 11, "name": "ダノンシーマ", "jockey": "川田将雅", "ninki": 3, "age": 4, "kinryo": 57.5, "v5_score": 1.608, "v5_rank": 2, "v5_mmd": 1.678, "gbm_score": 1.11, "gbm_rank": 2, "gbm_mmd": 1.143, "margin_sec": 0.494, "margin_rank": 2, "margin_std": 0.044, "flag": "TRIPLE_AGREE|TRIPLE_STRONG"}, {"umaban": 4, "name": "ファイアンクランツ", "jockey": "レーン", "ninki": 2, "age": 4, "kinryo": 56.0, "v5_score": 1.145, "v5_rank": 3, "v5_mmd": 1.214, "gbm_score": 0.54, "gbm_rank": 3, "gbm_mmd": 0.573, "margin_sec": 0.579, "margin_rank": 3, "margin_std": 0.069, "flag": "TRIPLE_AGREE|TRIPLE_STRONG"}, {"umaban": 1, "name": "アマキヒ", "jockey": "武豊", "ninki": 10, "age": 4, "kinryo": 56.0, "v5_score": 0.746, "v5_rank": 4, "v5_mmd": 0.816, "gbm_score": 0.193, "gbm_rank": 5, "gbm_mmd": 0.226, "margin_sec": 0.582, "margin_rank": 4, "margin_std": 0.066, "flag": "TRIPLE_AGREE|TRIPLE_STRONG"}, {"umaban": 8, "name": "ミラージュナイト", "jockey": "西村淳也", "ninki": 5, "age": 4, "kinryo": 56.0, "v5_score": 0.442, "v5_rank": 5, "v5_mmd": 0.511, "gbm_score": 0.227, "gbm_rank": 4, "gbm_mmd": 0.26, "margin_sec": 0.735, "margin_rank": 6, "margin_std": 0.052, "flag": "TRIPLE_AGREE|TRIPLE_STRONG"}, {"umaban": 14, "name": "キングスコール", "jockey": "坂井瑠星", "ninki": 6, "age": 4, "kinryo": 55.0, "v5_score": 0.297, "v5_rank": 6, "v5_mmd": 0.367, "gbm_score": 0.078, "gbm_rank": 7, "gbm_mmd": 0.111, "margin_sec": 0.746, "margin_rank": 7, "margin_std": 0.044, "flag": "TRIPLE_AGREE|TRIPLE_STRONG"}, {"umaban": 9, "name": "ハーツコンチェルト", "jockey": "横山武史", "ninki": 4, "age": 6, "kinryo": 54.0, "v5_score": 0.05, "v5_rank": 7, "v5_mmd": 0.119, "gbm_score": 0.126, "gbm_rank": 6, "gbm_mmd": 0.159, "margin_sec": 0.65, "margin_rank": 5, "margin_std": 0.036, "flag": "TRIPLE_AGREE|TRIPLE_STRONG"}, {"umaban": 7, "name": "アスクセクシーモア", "jockey": "北村友一", "ninki": 7, "age": 4, "kinryo": 55.0, "v5_score": -0.188, "v5_rank": 8, "v5_mmd": -0.119, "gbm_score": -0.143, "gbm_rank": 8, "gbm_mmd": -0.111, "margin_sec": 0.856, "margin_rank": 8, "margin_std": 0.023, "flag": "TRIPLE_AGREE|TRIPLE_STRONG"}, {"umaban": 5, "name": "ギャンブルルーム", "jockey": "幸英明", "ninki": 9, "age": 5, "kinryo": 55.0, "v5_score": -0.374, "v5_rank": 9, "v5_mmd": -0.305, "gbm_score": -0.355, "gbm_rank": 9, "gbm_mmd": -0.322, "margin_sec": 0.973, "margin_rank": 12, "margin_std": 0.034, "flag": "TRIPLE_AGREE|TRIPLE_STRONG"}, {"umaban": 12, "name": "キングズパレス", "jockey": "松岡正海", "ninki": 11, "age": 7, "kinryo": 57.0, "v5_score": -0.832, "v5_rank": 10, "v5_mmd": -0.763, "gbm_score": -0.938, "gbm_rank": 12, "gbm_mmd": -0.905, "margin_sec": 0.871, "margin_rank": 9, "margin_std": 0.066, "flag": "TRIPLE_AGREE|TRIPLE_STRONG"}, {"umaban": 2, "name": "ショウナンバシット", "jockey": "浜中俊", "ninki": 13, "age": 6, "kinryo": 57.0, "v5_score": -0.865, "v5_rank": 11, "v5_mmd": -0.796, "gbm_score": -0.969, "gbm_rank": 13, "gbm_mmd": -0.936, "margin_sec": 1.854, "margin_rank": 14, "margin_std": 0.121, "flag": "TRIPLE_AGREE|TRIPLE_STRONG"}, {"umaban": 10, "name": "マイネルケレリウス", "jockey": "丹内祐次", "ninki": 12, "age": 6, "kinryo": 55.0, "v5_score": -1.038, "v5_rank": 12, "v5_mmd": -0.968, "gbm_score": -0.719, "gbm_rank": 10, "gbm_mmd": -0.686, "margin_sec": 0.927, "margin_rank": 10, "margin_std": 0.038, "flag": "TRIPLE_AGREE|TRIPLE_STRONG"}, {"umaban": 3, "name": "ボーンディスウェイ", "jockey": "松山弘平", "ninki": 14, "age": 7, "kinryo": 57.0, "v5_score": -1.208, "v5_rank": 13, "v5_mmd": -1.139, "gbm_score": -0.719, "gbm_rank": 11, "gbm_mmd": -0.687, "margin_sec": 0.959, "margin_rank": 11, "margin_std": 0.043, "flag": "TRIPLE_AGREE|TRIPLE_STRONG"}, {"umaban": 13, "name": "ヴェルミセル", "jockey": "ゴンサル", "ninki": 8, "age": 6, "kinryo": 54.0, "v5_score": -1.672, "v5_rank": 14, "v5_mmd": -1.603, "gbm_score": -1.287, "gbm_rank": 14, "gbm_mmd": -1.255, "margin_sec": 1.301, "margin_rank": 13, "margin_std": 0.078, "flag": "TRIPLE_AGREE|TRIPLE_STRONG"}]}]};
+const SORTS = [
+  {key:"v5",     label:"v5 指数",  rank:"v5_rank",     score:"v5_score",   asc:false},
+  {key:"gbm",    label:"GBM 指数", rank:"gbm_rank",    score:"gbm_score",  asc:false},
+  {key:"margin", label:"着差",     rank:"margin_rank", score:"margin_sec", asc:true},
+  {key:"ninki",  label:"人気",     rank:"ninki",       score:"ninki",      asc:true},
+];
+let state = { raceIdx:0, sort:"v5", recoOnly:false };
+const m = DATA.meta;
+const maxConf = Math.max(0.01, ...DATA.races.map(r => r.conf || 0));
+
+document.getElementById("hdate").textContent = `${m.date}  開催`;
+document.getElementById("src").textContent = `source: ${m.source} ・ generated ${m.generated}`;
+document.getElementById("chips").innerHTML = `
+  <div class="chip"><div class="k">開催数</div><div class="v num">${m.n_places}</div></div>
+  <div class="chip"><div class="k">レース</div><div class="v num">${m.n_races}</div></div>
+  <div class="chip gold"><div class="k">★推奨</div><div class="v num">${m.n_recommended}</div></div>`;
+
+const fmt = (v,d=2) => (v===null||v===undefined||Number.isNaN(v)) ? "—" : Number(v).toFixed(d);
+const surfCls = s => s==="良" ? "firm" : (s==="重"||s==="不良") ? "heavy" : "";
+
+/* ---------------- race list ---------------- */
+function renderList(){
+  const items = DATA.races.map((r,i)=>({r,i})).filter(x => !state.recoOnly || x.r.recommended);
+  const groups = {};
+  items.forEach(x => (groups[x.r.place] ||= []).push(x));
+
+  let html = `<div class="toolbar">
+      <span class="ttl">RACES</span>
+      <label class="sw"><input type="checkbox" id="reco" ${state.recoOnly?"checked":""}>
+        <span class="track"></span><span>推奨のみ</span></label>
+    </div>`;
+
+  if(!items.length) html += `<div style="color:var(--dim);font-size:12px;padding:20px 4px">推奨レースはありません。</div>`;
+
+  for(const place in groups){
+    html += `<div class="grp-name">${place}</div>`;
+    for(const {r,i} of groups[place]){
+      const cw = Math.round((r.conf||0)/maxConf*100);
+      html += `<button class="rcard ${i===state.raceIdx?"active":""} ${r.recommended?"reco":""}" data-i="${i}">
+        <div class="rno-badge"><b class="num">${r.r}</b><span class="rs">RACE</span></div>
+        <div class="mid">
+          <div class="nm">${r.recommended?'<span class="star">★</span>':''}${r.top_name||"—"}</div>
+          <div class="sub"><span class="surf ${surfCls(r.surface)}">${r.surface}</span> ${r.distance}m ・ ${r.n_horses}頭</div>
+        </div>
+        <div class="conf"><div class="meter"><i style="width:${cw}%"></i></div><div class="lbl num">確信 ${fmt(r.conf)}</div></div>
+      </button>`;
+    }
+  }
+  const el = document.getElementById("list");
+  el.innerHTML = html;
+  el.querySelector("#reco").onchange = e => { state.recoOnly = e.target.checked; renderList(); };
+  el.querySelectorAll(".rcard").forEach(b => b.onclick = () => {
+    state.raceIdx = +b.dataset.i; renderDetail();
+    document.getElementById("layout").classList.add("show-detail");
+    renderList();
+  });
+}
+
+/* ---------------- detail ---------------- */
+function flagChips(flag){
+  if(!flag) return "";
+  return flag.split("|").map(f=>{
+    let c=""; if(f.includes("AGREE"))c="agree"; else if(f.includes("FIRE"))c="fire";
+    else if(f.includes("STRONG"))c="strong"; else if(f.includes("uncertain")||f.includes("SKIP"))c="unc";
+    return `<span class="fl ${c}">${f}</span>`;
+  }).join("");
+}
+
+function renderDetail(){
+  const r = DATA.races[state.raceIdx];
+  const sort = SORTS.find(s => s.key===state.sort);
+  const horses = [...r.horses].sort((a,b)=>{
+    const av=a[sort.rank], bv=b[sort.rank];
+    if(av===null) return 1; if(bv===null) return -1; return av-bv;
+  });
+
+  // 各指標の min/max（バー正規化用）
+  const ranges = {};
+  for(const k of ["v5_score","gbm_score","margin_sec"]){
+    const vs = r.horses.map(h=>h[k]).filter(v=>v!==null);
+    ranges[k] = {mn:Math.min(...vs), mx:Math.max(...vs)};
+  }
+  const fill = (k,v,asc)=>{
+    const {mn,mx}=ranges[k]; if(v===null||mx===mn) return 0;
+    const t=(v-mn)/(mx-mn); return Math.round((asc?1-t:t)*100);
+  };
+
+  const banner = r.recommended ? `
+    <div class="reco-card">
+      <div class="h">★ 推奨レース<span style="color:var(--mut);font-weight:500">— ${r.rec_label}</span></div>
+      <div class="axis">
+        <div class="pin num">${r.bet_pick??"?"}</div>
+        <div class="who"><div class="nm">${r.top_name}</div>
+          <div class="sub">軸馬 ・ source: ${r.bet_source||"—"}</div></div>
+      </div>
+      <div class="strat">買い方: この軸から <b>v5上位</b> を相手に <b>3連複 軸1頭流し</b>（運用ルール準拠）</div>
+    </div>` : `
+    <div class="skip-card">💤 この設定では推奨フラグなし（SKIP）。
+      AI本命は <span class="ai">${r.top_umaban}番 ${r.top_name}</span>。各馬の指数は下で確認できます。</div>`;
+
+  const rows = horses.map((h,idx)=>{
+    const isPick = h.umaban===r.bet_pick;
+    const rkCls = h.v5_rank===1?"m1":h.v5_rank===2?"m2":h.v5_rank===3?"m3":"";
+    const r1 = rk => rk===1?"r1":"";
+    return `<div class="horse ${isPick?"pick":""}">
+      <div class="rkwrap"><div class="medal ${rkCls}">${idx+1}</div><div class="uma num">${h.umaban??"—"}番</div></div>
+      <div class="hmain">
+        <div class="top"><span class="nm">${h.name}</span>${isPick?'<span class="pickbadge">◎ 軸</span>':''}</div>
+        <div class="sub"><span>${h.jockey}</span><span>${h.age??"?"}歳</span><span class="num">${fmt(h.kinryo,1)}kg</span>
+          <span class="nin">人気 <b class="num">${h.ninki??"—"}</b></span></div>
+        <div class="flags">${flagChips(h.flag)}</div>
+      </div>
+      <div class="bars">
+        <div class="bar v5"><span class="bl">v5</span><div class="track"><i style="width:${fill("v5_score",h.v5_score,false)}%"></i></div>
+          <span class="val num">${fmt(h.v5_score)}<span class="rk ${r1(h.v5_rank)}">#${h.v5_rank??"—"}</span></span></div>
+        <div class="bar gbm"><span class="bl">GBM</span><div class="track"><i style="width:${fill("gbm_score",h.gbm_score,false)}%"></i></div>
+          <span class="val num">${fmt(h.gbm_score)}<span class="rk ${r1(h.gbm_rank)}">#${h.gbm_rank??"—"}</span></span></div>
+        <div class="bar mgn"><span class="bl">着差</span><div class="track"><i style="width:${fill("margin_sec",h.margin_sec,true)}%"></i></div>
+          <span class="val num">${fmt(h.margin_sec)}s<span class="rk ${r1(h.margin_rank)}">#${h.margin_rank??"—"}</span></span></div>
+      </div>
+    </div>`;
+  }).join("");
+
+  document.getElementById("detail").innerHTML = `
+    <button class="back" onclick="document.getElementById('layout').classList.remove('show-detail')">← レース一覧</button>
+    <div class="dhead">
+      <div><div class="place">${r.place}</div><h2>${r.r}<span style="font-size:18px;font-weight:600;color:var(--mut)">R</span></h2></div>
+      <div class="tags">
+        <span class="tag">${r.distance}m</span>
+        <span class="tag">馬場 ${r.surface}</span>
+        <span class="tag">${r.n_horses}頭</span>
+      </div>
+    </div>
+    ${banner}
+    <div class="seg">${SORTS.map(s=>`<button class="${s.key===state.sort?"active":""}" data-s="${s.key}">${s.label}</button>`).join("")}</div>
+    <div class="hlist">${rows}</div>
+    <div class="legend">
+      <b>指数の見方</b><br>
+      <span class="dot" style="background:var(--v5)"></span><code>v5</code> NNアンサンブル(v5)スコア — メイン予測。<code>#</code>はレース内順位。<br>
+      <span class="dot" style="background:var(--gbm)"></span><code>GBM</code> LightGBM LambdaRank スコア（別系統モデル）。<br>
+      <span class="dot" style="background:var(--mgn)"></span><code>着差</code> 着差回帰の予測タイム差(秒) — 小さい=速い=上位予測。<br>
+      <b>確信度</b> = v5 top1 の mmd（上位馬がどれだけ抜けてるか）。<span style="color:var(--gold)">◎軸</span>=推奨の軸馬。<br>
+      <span class="disc">※ 表示はモデル出力であり的中・利益を保証しません。投票は自己責任で。</span>
+    </div>`;
+
+  document.querySelectorAll(".seg button").forEach(b =>
+    b.onclick = () => { state.sort = b.dataset.s; renderDetail(); });
+}
+
+renderList();
+renderDetail();
+</script>
+</body>
+</html>
